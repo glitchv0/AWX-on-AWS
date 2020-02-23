@@ -1,6 +1,8 @@
 # GlitchV0 Updates
 This is and updated version for the latest versions of AWX.  Below is the orinal README, which I advise you do check out as it covers the deployment more in depth.
 
+# See my blog post for my full walkthrough: https://glitchv0.com/awx-on-aws/
+
 # quickstart-awx
 ## AWX for Ansible on the AWS Cloud
 
