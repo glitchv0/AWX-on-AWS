@@ -41,12 +41,13 @@ Parameters:
   AWXVersion:
     Description: Which version of AWX to use
     Type: String
-    Default: 6.1.0
+    Default: 9.2.0
     AllowedValues:
       - 4.0.0
       - 5.0.0
       - 6.0.0
       - 6.1.0
+      - 9.2.0
   AWXGitHubRepo:
     Description: Which github should we use as the source for the build
     Type: String
@@ -146,7 +147,7 @@ Resources:
       Environment:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
-        Image: docker.io/amazonlinux:2017.09
+        Image: aws/codebuild/standard:3.0
         PrivilegedMode: True
         EnvironmentVariables:
           - Name: AWX_TASK_REPO
@@ -190,10 +191,12 @@ Resources:
           version: 0.2
           phases:
             install:
+              Runtime-versions:
+                docker: 18
               commands:
-                - yum install -y git gcc docker python27-pip python27-devel libffi-devel openssl-devel curl util-linux
-                - /usr/bin/pip install -U docker docker-compose ansible awscli
-                - service docker start
+                - apt-get -y update
+                - apt-get -y install build-essential libssl-dev libffi-dev python-dev python3-dev python3-venv git
+                - /usr/local/bin/pip3  install -U docker docker-compose ansible awscli
                 - $(aws ecr get-login --no-include-email)
                 - set
             build:
@@ -203,7 +206,7 @@ Resources:
                 - sed -i "s/^dockerhub_version=latest/dockerhub_version=$AWS_VERSION/g" inventory
                 - echo ansible-playbook -i inventory -e awx_version="$AWX_VERSION" -e pg_hostname="$pg_hostname" -e pg_username="$pg_username" -e pg_password="$pg_password" -e pg_database="awx" -e pg_port=5432 -e default_admin_user="$awx_username" -e default_admin_password="$awx_password" -e admin_user="$awx_username" -e admin_password="$awx_password" install.yml
                 - ansible-playbook -v -i inventory -e awx_version="$AWX_VERSION" -e pg_hostname="$pg_hostname" -e pg_username="$pg_username" -e pg_password="$pg_password" -e pg_database="awx" -e pg_port=5432 -e default_admin_user="$awx_username" -e default_admin_password="$awx_password" -e admin_user="$awx_username" -e admin_password="$awx_password" install.yml
-                # Allow time for the DB Setup Scripts to complete              
+                # Allow time for the DB Setup Scripts to complete
                 - sleep 240
                 # Get container tagging info
                 - export ACCOUNT_ID=$(echo ${CODEBUILD_BUILD_ARN} | awk -F':' '{print $5}')
@@ -214,25 +217,27 @@ Resources:
                 # Make a Sidecar container to inject created files for mounting
                 - mkdir sidecar
                 - mkdir sidecar/tmp
-                - cp -drpu /tmp/awxcompose/ sidecar/tmp/
+                - cp -drpu ~/.awx/awxcompose sidecar/tmp/
                 - echo "changes"
                 - echo "FROM ansible/awx_web:${AWX_VERSION}" > sidecar/Dockerfile
                 - echo "VOLUME /etc/tower/" >> sidecar/Dockerfile
-                - echo "COPY --chown=1000 /tmp/awxcompose/credentials.py /etc/tower/conf.d/credentials.py" >> sidecar/Dockerfile
-                - echo "COPY --chown=1000 /tmp/awxcompose/SECRET_KEY /etc/tower/SECRET_KEY" >> sidecar/Dockerfile
-                - echo "COPY --chown=1000 /tmp/awxcompose/environment.sh /etc/tower/conf.d/environment.sh" >> sidecar/Dockerfile
-                - | 
+                - echo "VOLUME /etc/nginx/" >> sidecar/Dockerfile
+                - echo "COPY --chown=1000 tmp/awxcompose/credentials.py /etc/tower/conf.d/credentials.py" >> sidecar/Dockerfile
+                - echo "COPY --chown=1000 tmp/awxcompose/SECRET_KEY /etc/tower/SECRET_KEY" >> sidecar/Dockerfile
+                - echo "COPY --chown=1000 tmp/awxcompose/environment.sh /etc/tower/conf.d/environment.sh" >> sidecar/Dockerfile
+                - echo "COPY --chown=1000 tmp/awxcompose/nginx.conf /etc/nginx/nginx.conf" >> sidecar/Dockerfile
+                - |
                   echo 'CMD exec /bin/bash -c "trap : TERM INT; sleep infinity & wait"' >> sidecar/Dockerfile
                 - docker build -t sidecar:${AWX_VERSION} sidecar
-                # Debug info 
+                # Debug info
                 # Contextual info for other debug data
                 - docker container ls --all
                 - docker image ls --all
-                # Full logs of each container 
+                # Full logs of each container
                 #- for i in $(docker ps -q); do docker logs $i; done
-                # Docker inspect 
+                # Docker inspect
                 #- for i in $(docker ps -q); do echo "CONTAINER $i\\n========="; docker inspect $i; echo "========="; done
-                
+
                 # Push containers to their respective repositories
                 - >
                   docker tag ansible/awx_task:${AWX_VERSION} ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_TASK_REPO}:${AWX_VERSION} &&
@@ -392,8 +397,8 @@ Resources:
       MemcachedRegistry: !Ref MemcachedRegistry
       RabbitMQRegistry: !Ref  RabbitMQRegistry
       SidecarRegistry: !Ref  SidecarRegistry
-      # cfn_signal_url: is part of the event by default hence missing here 
-      # cfn_stack_id: is part of the event by default 
+      # cfn_signal_url: is part of the event by default hence missing here
+      # cfn_stack_id: is part of the event by default
       # cfn_request_id: also part of the event
       # cfn_logical_resource_id: also part of the event
       # Lambda function passes the above into the build project when invoking StartBuild
@@ -403,7 +408,7 @@ Resources:
     Properties:
       Code:
         S3Bucket: !Ref LambdaZipsBucket
-        S3Key: 
+        S3Key:
           Fn::Join:
             - ""
             - - !Ref QSS3KeyPrefix
@@ -488,7 +493,7 @@ Resources:
       LoadBalancers:
         - ContainerName: awxweb
           ContainerPort: 8052
-          TargetGroupArn: !Ref TargetGroup 
+          TargetGroupArn: !Ref TargetGroup
   ContainerLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -662,7 +667,7 @@ Resources:
       VpcId: !Ref VPC
       Port: 80
       Protocol: HTTP
-      Matcher: 
+      Matcher:
         HttpCode: 200-499
       HealthCheckIntervalSeconds: 10
       HealthCheckPath: /
@@ -680,7 +685,7 @@ Resources:
         - "/"
       Actions:
       - Type: forward
-        TargetGroupArn: 
+        TargetGroupArn:
           Ref: TargetGroup
   Listener:
     Type: AWS::ElasticLoadBalancingV2::Listener
