@@ -1,0 +1,94 @@
+[
+    {
+        "ParameterKey": "AWXAdminPassword",
+        "ParameterValue": "$[taskcat_genpass_8A]"
+    },
+    {
+        "ParameterKey": "AWXAdminUsername",
+        "ParameterValue": "admin"
+    },
+    {
+        "ParameterKey": "AWXGitHubRepo",
+        "ParameterValue": "https://github.com/ansible/awx.git"
+    },
+    {
+        "ParameterKey": "AWXVersion",
+        "ParameterValue": "6.1.0"
+    },
+    {
+        "ParameterKey": "AvailabilityZones",
+        "ParameterValue": "$[taskcat_genaz_2]"
+    },
+    {
+        "ParameterKey": "ClusterSize",
+        "ParameterValue": 2
+    },
+    {
+        "ParameterKey": "DBInstanceClass",
+        "ParameterValue": "db.t3.medium"
+    },
+    {
+        "ParameterKey": "InstanceType",
+        "ParameterValue": "t3.large"
+    },
+    {
+        "ParameterKey": "KeyPairName",
+        "ParameterValue": "tonynv"
+    },
+    {
+        "ParameterKey": "MasterUserPassword",
+        "ParameterValue": "$[taskcat_genpass_8A]"
+    },
+    {
+        "ParameterKey": "MasterUsername",
+        "ParameterValue": "cidbadmin"
+    },
+    {
+        "ParameterKey": "PreferredBackupWindow",
+        "ParameterValue": "00:00-02:00"
+    },
+    {
+        "ParameterKey": "PreferredMaintenanceWindowDay",
+        "ParameterValue": "Mon"
+    },
+    {
+        "ParameterKey": "PreferredMaintenanceWindowEndTime",
+        "ParameterValue": "06:00"
+    },
+    {
+        "ParameterKey": "PreferredMaintenanceWindowStartTime",
+        "ParameterValue": "04:00"
+    },
+    {
+        "ParameterKey": "PrivateSubnet1CIDR",
+        "ParameterValue": "10.0.0.0/19"
+    },
+    {
+        "ParameterKey": "PrivateSubnet2CIDR",
+        "ParameterValue": "10.0.32.0/19"
+    },
+    {
+        "ParameterKey": "PublicSubnet1CIDR",
+        "ParameterValue": "10.0.128.0/20"
+    },
+    {
+        "ParameterKey": "PublicSubnet2CIDR",
+        "ParameterValue": "10.0.144.0/20"
+    },
+    {
+        "ParameterKey": "QSS3BucketName",
+        "ParameterValue": "$[taskcat_autobucket]"
+    },
+    {
+        "ParameterKey": "QSS3KeyPrefix",
+        "ParameterValue": "quickstart-awx/"
+    },
+    {
+        "ParameterKey": "RemoteAccessCIDR",
+        "ParameterValue": "10.0.0.0/16"
+    },
+    {
+        "ParameterKey": "VPCCIDR",
+        "ParameterValue": "10.0.0.0/16"
+    }
+]
